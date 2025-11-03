@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import type { ChangedFile, CodeAnalysis, GeminiAnalysisResponse } from './types';
 import { CONFIG } from './config';
+import { buildCodeReviewPrompt, MESSAGES } from './templates';
 
 export class GeminiClient {
   private genAI: GoogleGenerativeAI;
@@ -25,13 +26,13 @@ export class GeminiClient {
 
     if (analyzableFiles.length === 0) {
       return {
-        summary: '분석할 수 있는 파일이 없습니다. (바이너리 파일이거나 변경량이 너무 큽니다)',
+        summary: MESSAGES.NO_ANALYZABLE_FILES,
         comments: []
       };
     }
 
     try {
-      const prompt = this.buildPrompt(analyzableFiles);
+      const prompt = buildCodeReviewPrompt(analyzableFiles, this.maxComments);
       const result = await this.callGemini(prompt);
       return this.parseResponse(result);
     } catch (error) {
@@ -62,41 +63,6 @@ export class GeminiClient {
     }
   }
 
-  private buildPrompt(files: ChangedFile[]): string {
-    const fileContents = files.map(file => `
-## 파일: ${file.filename}
-상태: ${file.status}
-변경: +${file.additions} -${file.deletions}
-
-\`\`\`diff
-${file.patch}
-\`\`\`
-`).join('\n\n');
-
-    return `
-당신은 전문 코드 리뷰어입니다. 다음 Pull Request 변경사항을 분석하고 리뷰해주세요.
-
-${fileContents}
-
-다음 JSON 형식으로만 응답하세요 (마크다운 없이 순수 JSON만):
-
-{
-  "summary": "전체 리뷰 요약 (한국어)",
-  "issuesFound": 발견된_이슈_개수,
-  "comments": [
-    {
-      "path": "파일명",
-      "line": 라인번호,
-      "body": "코멘트 (한국어)"
-    }
-  ]
-}
-
-중요한 이슈만 최대 ${this.maxComments}개까지 코멘트하세요.
-보안 취약점, 버그, 성능 이슈에 집중하세요.
-`;
-  }
-
   private parseResponse(response: string): CodeAnalysis {
     try {
       const jsonMatch = response.match(/\{[\s\S]*\}/);
@@ -107,12 +73,12 @@ ${fileContents}
       const parsed: GeminiAnalysisResponse = JSON.parse(jsonMatch[0]);
       
       return {
-        summary: parsed.summary || '코드를 분석했습니다.',
+        summary: parsed.summary || MESSAGES.DEFAULT_ANALYSIS_SUMMARY,
         comments: (parsed.comments || []).slice(0, this.maxComments)
       };
     } catch (error) {
       return {
-        summary: 'AI 응답을 파싱하는 중 오류가 발생했습니다. 전반적으로 코드가 깔끔합니다.',
+        summary: MESSAGES.PARSING_ERROR_SUMMARY,
         comments: []
       };
     }
