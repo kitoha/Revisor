@@ -1,40 +1,84 @@
 import * as core from '@actions/core';
 import * as github from '@actions/github';
 import { GitHubClient } from './github';
+import { GeminiClient } from './gemini';
+import type { ActionInputs, CodeAnalysis, ChangedFile } from './types';
+
+function getInputs(): ActionInputs {
+  return {
+    geminiApiKey: core.getInput('gemini-api-key', { required: true }),
+    githubToken: core.getInput('github-token', { required: true }),
+    geminiModel: core.getInput('gemini-model') || undefined,
+    maxChanges: parseInt(core.getInput('max-changes') || '0', 10) || undefined,
+    maxComments: parseInt(core.getInput('max-comments') || '0', 10) || undefined
+  };
+}
+
+function validatePullRequestEvent(): number {
+  if (!github.context.payload.pull_request) {
+    throw new Error('⚠️ 이 액션은 pull_request 이벤트에서만 작동합니다');
+  }
+  return github.context.payload.pull_request.number;
+}
+
+function createReviewSummary(files: ChangedFile[], analysis: CodeAnalysis): string {
+  return `
+## 🤖 Revisor AI Code Review
+
+### 📊 분석 결과
+- **변경된 파일**: ${files.length}개
+- **발견된 이슈**: ${analysis.comments.length}개
+
+### 💭 요약
+${analysis.summary}
+
+${analysis.comments.length > 0 ? '### 📍 세부 사항\n아래 라인별 코멘트를 확인하세요.' : ''}
+
+---
+*Powered by Google Gemini AI*
+  `.trim();
+}
 
 async function run(): Promise<void> {
   try {
-    core.info('Revisor AI Code Review 시작!');
+    core.info('🚀 Revisor AI Code Review 시작!');
     
-    const geminiApiKey = core.getInput('gemini-api-key', { required: true });
-    const githubToken = core.getInput('github-token', { required: true });
+    const inputs = getInputs();
     
-    core.info(`API 키 확인 완료`);
-
-    const context = github.context;
-    if (!context.payload.pull_request) {
-      core.warning('이 액션은 pull_request 이벤트에서만 작동합니다');
+    const prNumber = validatePullRequestEvent();
+    core.info(`📝 PR #${prNumber} 리뷰 중...`);
+    
+    const githubClient = new GitHubClient(inputs.githubToken);
+    const geminiClient = new GeminiClient(
+      inputs.geminiApiKey,
+      inputs.geminiModel,
+      inputs.maxChanges,
+      inputs.maxComments
+    );
+    
+    core.info('📂 변경된 파일 가져오는 중...');
+    const files = await githubClient.getChangedFiles();
+    core.info(`✅ 변경된 파일: ${files.length}개`);
+    
+    if (files.length === 0) {
+      core.info('ℹ️ 분석할 파일이 없습니다');
       return;
     }
     
-    const prNumber = context.payload.pull_request.number;
-    core.info(`PR #${prNumber} 리뷰 준비 중...`);
-
-    const githubClient = new GitHubClient(githubToken);
+    core.info('🤖 Gemini AI로 분석 중...');
+    const analysis = await geminiClient.analyzeCode(files);
+    core.info(`✅ 분석 완료! 이슈 ${analysis.comments.length}개 발견`);
     
-    const files = await githubClient.getChangedFiles();
-    core.info(`변경된 파일: ${files.length}개`);
-
-    files.forEach((file: { filename: string; additions: number; deletions: number }) => {
-      core.info(`  - ${file.filename} (+${file.additions} -${file.deletions})`);
-    });
+    const reviewSummary = createReviewSummary(files, analysis);
+    core.info('💬 리뷰 작성 중...');
+    await githubClient.createReview(reviewSummary, analysis.comments);
     
-    core.info('완료!');
+    core.info('🎉 리뷰 완료!');
     
   } catch (error) {
-    if (error instanceof Error) {
-      core.setFailed(`실패: ${error.message}`);
-    }
+    const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다';
+    core.setFailed(`❌ 실패: ${errorMessage}`);
+    throw error;
   }
 }
 

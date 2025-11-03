@@ -10,6 +10,15 @@ inputs:
     description: 'GitHub Token'
     required: true
     default: ${{ github.token }}
+  gemini-model:
+    description: 'Gemini model to use (default: gemini-pro)'
+    required: false
+  max-changes:
+    description: 'Maximum number of changes per file to analyze (default: 500)'
+    required: false
+  max-comments:
+    description: 'Maximum number of review comments (default: 3)'
+    required: false
 
 runs:
   using: 'node20'
