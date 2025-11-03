@@ -1,7 +1,7 @@
 import * as github from '@actions/github';
 import type { ChangedFile, ReviewComment } from './types';
 import { CONFIG } from './config';
-import { MESSAGES } from './templates';
+import { MESSAGES, formatComment } from './templates';
 
 export class GitHubClient {
   private octokit: ReturnType<typeof github.getOctokit>;
@@ -46,7 +46,9 @@ export class GitHubClient {
 
   async createReview(summary: string, comments: ReviewComment[]): Promise<void> {
     try {
-      const validComments = comments.filter(comment => comment.line > 0 && comment.path && comment.body);
+      const validComments = comments
+        .filter(comment => comment.line > 0 && comment.path && comment.body)
+        .map(comment => formatComment(comment));
 
       await this.octokit.rest.pulls.createReview({
         owner: this.owner,
