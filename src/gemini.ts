@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import type { ChangedFile, CodeAnalysis, GeminiAnalysisResponse } from './types';
 import { CONFIG } from './config';
 import { buildCodeReviewPrompt, MESSAGES } from './templates';
@@ -8,7 +8,7 @@ function createErrorMessage(baseMessage: string, error: unknown): string {
 }
 
 export class GeminiClient {
-  private genAI: GoogleGenerativeAI;
+  private ai: GoogleGenAI;
   private model: string;
   private maxChanges: number;
   private maxComments: number;
@@ -19,7 +19,7 @@ export class GeminiClient {
     maxChanges: number = CONFIG.MAX_FILE_CHANGES,
     maxComments: number = CONFIG.MAX_REVIEW_COMMENTS
   ) {
-    this.genAI = new GoogleGenerativeAI(apiKey);
+    this.ai = new GoogleGenAI({ apiKey });
     this.model = model;
     this.maxChanges = maxChanges;
     this.maxComments = maxComments;
@@ -54,10 +54,14 @@ export class GeminiClient {
 
   private async callGemini(prompt: string): Promise<string> {
     try {
-      const model = this.genAI.getGenerativeModel({ model: this.model });
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      return response.text();
+      const response = await this.ai.models.generateContent({
+        model: this.model,
+        contents: prompt
+      });
+      const text = (response as any).text ?? (typeof (response as any).text === 'function' ? (response as any).text() : undefined);
+      if (typeof text === 'string') return text;
+      if (text && typeof text.then === 'function') return await text;
+      throw new Error('응답에서 텍스트를 가져올 수 없습니다');
     } catch (error) {
       throw new Error(createErrorMessage(MESSAGES.GEMINI_API_ERROR, error));
     }
