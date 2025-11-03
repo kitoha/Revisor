@@ -3,21 +3,27 @@ import * as github from '@actions/github';
 import { GitHubClient } from './github';
 import { GeminiClient } from './gemini';
 import type { ActionInputs } from './types';
-import { createReviewSummary } from './templates';
+import { createReviewSummary, MESSAGES } from './templates';
+
+function parseOptionalNumber(value: string | undefined): number | undefined {
+  if (!value) return undefined;
+  const parsed = parseInt(value, 10);
+  return isNaN(parsed) || parsed <= 0 ? undefined : parsed;
+}
 
 function getInputs(): ActionInputs {
   return {
     geminiApiKey: core.getInput('gemini-api-key', { required: true }),
     githubToken: core.getInput('github-token', { required: true }),
     geminiModel: core.getInput('gemini-model') || undefined,
-    maxChanges: parseInt(core.getInput('max-changes') || '0', 10) || undefined,
-    maxComments: parseInt(core.getInput('max-comments') || '0', 10) || undefined
+    maxChanges: parseOptionalNumber(core.getInput('max-changes')),
+    maxComments: parseOptionalNumber(core.getInput('max-comments'))
   };
 }
 
 function validatePullRequestEvent(): number {
   if (!github.context.payload.pull_request) {
-    throw new Error('이 액션은 pull_request 이벤트에서만 작동합니다');
+    throw new Error(MESSAGES.INVALID_PR_EVENT);
   }
   return github.context.payload.pull_request.number;
 }
@@ -44,7 +50,7 @@ async function run(): Promise<void> {
     core.info(`변경된 파일: ${files.length}개`);
     
     if (files.length === 0) {
-      core.info('분석할 파일이 없습니다');
+      core.info(MESSAGES.NO_FILES_TO_ANALYZE);
       return;
     }
     
@@ -59,7 +65,7 @@ async function run(): Promise<void> {
     core.info('리뷰 완료!');
     
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다';
+    const errorMessage = error instanceof Error ? error.message : MESSAGES.UNKNOWN_ERROR;
     core.setFailed(`실패: ${errorMessage}`);
     throw error;
   }

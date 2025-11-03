@@ -56,6 +56,14 @@ ${fileContents}
 export const MESSAGES = {
   NO_ANALYZABLE_FILES: '분석할 수 있는 파일이 없습니다. (바이너리 파일이거나 변경량이 너무 큽니다)',
   DEFAULT_ANALYSIS_SUMMARY: '코드를 분석했습니다.',
-  PARSING_ERROR_SUMMARY: 'AI 응답을 파싱하는 중 오류가 발생했습니다. 전반적으로 코드가 깔끔합니다.'
+  PARSING_ERROR_SUMMARY: 'AI 응답을 파싱하는 중 오류가 발생했습니다. 전반적으로 코드가 깔끔합니다.',
+  GET_FILES_ERROR: '변경된 파일을 가져오는 중 오류 발생',
+  CREATE_REVIEW_ERROR: '리뷰 작성 중 오류 발생',
+  GEMINI_ANALYSIS_ERROR: 'Gemini AI 분석 중 오류 발생',
+  GEMINI_API_ERROR: 'Gemini API 호출 실패',
+  JSON_PARSE_ERROR: 'JSON을 찾을 수 없습니다',
+  UNKNOWN_ERROR: '알 수 없는 오류',
+  INVALID_PR_EVENT: '이 액션은 pull_request 이벤트에서만 작동합니다',
+  NO_FILES_TO_ANALYZE: '분석할 파일이 없습니다'
 } as const;
 

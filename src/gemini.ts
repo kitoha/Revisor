@@ -3,6 +3,10 @@ import type { ChangedFile, CodeAnalysis, GeminiAnalysisResponse } from './types'
 import { CONFIG } from './config';
 import { buildCodeReviewPrompt, MESSAGES } from './templates';
 
+function createErrorMessage(baseMessage: string, error: unknown): string {
+  return `${baseMessage}: ${error instanceof Error ? error.message : MESSAGES.UNKNOWN_ERROR}`;
+}
+
 export class GeminiClient {
   private genAI: GoogleGenerativeAI;
   private model: string;
@@ -36,9 +40,7 @@ export class GeminiClient {
       const result = await this.callGemini(prompt);
       return this.parseResponse(result);
     } catch (error) {
-      throw new Error(
-        `Gemini AI 분석 중 오류 발생: ${error instanceof Error ? error.message : '알 수 없는 오류'}`
-      );
+      throw new Error(createErrorMessage(MESSAGES.GEMINI_ANALYSIS_ERROR, error));
     }
   }
 
@@ -57,9 +59,7 @@ export class GeminiClient {
       const response = await result.response;
       return response.text();
     } catch (error) {
-      throw new Error(
-        `Gemini API 호출 실패: ${error instanceof Error ? error.message : '알 수 없는 오류'}`
-      );
+      throw new Error(createErrorMessage(MESSAGES.GEMINI_API_ERROR, error));
     }
   }
 
@@ -67,7 +67,7 @@ export class GeminiClient {
     try {
       const jsonMatch = response.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
-        throw new Error('JSON을 찾을 수 없습니다');
+        throw new Error(MESSAGES.JSON_PARSE_ERROR);
       }
 
       const parsed: GeminiAnalysisResponse = JSON.parse(jsonMatch[0]);

@@ -1,6 +1,7 @@
 import * as github from '@actions/github';
 import type { ChangedFile, ReviewComment } from './types';
 import { CONFIG } from './config';
+import { MESSAGES } from './templates';
 
 export class GitHubClient {
   private octokit: ReturnType<typeof github.getOctokit>;
@@ -17,34 +18,47 @@ export class GitHubClient {
 
   async getChangedFiles(): Promise<ChangedFile[]> {
     try {
-      const { data } = await this.octokit.rest.pulls.listFiles({
-        owner: this.owner,
-        repo: this.repo,
-        pull_number: this.prNumber,
-        per_page: CONFIG.FILES_PER_PAGE
-      });
-      
-      return data as ChangedFile[];
+      const allFiles: ChangedFile[] = [];
+      let page = 1;
+      let hasMore = true;
+
+      while (hasMore) {
+        const { data } = await this.octokit.rest.pulls.listFiles({
+          owner: this.owner,
+          repo: this.repo,
+          pull_number: this.prNumber,
+          per_page: CONFIG.FILES_PER_PAGE,
+          page
+        });
+
+        allFiles.push(...(data as ChangedFile[]));
+        hasMore = data.length === CONFIG.FILES_PER_PAGE;
+        page++;
+      }
+
+      return allFiles;
     } catch (error) {
       throw new Error(
-        `변경된 파일을 가져오는 중 오류 발생: ${error instanceof Error ? error.message : '알 수 없는 오류'}`
+        `${MESSAGES.GET_FILES_ERROR}: ${error instanceof Error ? error.message : MESSAGES.UNKNOWN_ERROR}`
       );
     }
   }
 
   async createReview(summary: string, comments: ReviewComment[]): Promise<void> {
     try {
+      const validComments = comments.filter(comment => comment.line > 0 && comment.path && comment.body);
+
       await this.octokit.rest.pulls.createReview({
         owner: this.owner,
         repo: this.repo,
         pull_number: this.prNumber,
         body: summary,
         event: CONFIG.REVIEW_EVENT,
-        comments: comments
+        comments: validComments
       });
     } catch (error) {
       throw new Error(
-        `리뷰 작성 중 오류 발생: ${error instanceof Error ? error.message : '알 수 없는 오류'}`
+        `${MESSAGES.CREATE_REVIEW_ERROR}: ${error instanceof Error ? error.message : MESSAGES.UNKNOWN_ERROR}`
       );
     }
   }
