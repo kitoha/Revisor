@@ -1,0 +1,82 @@
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.GitHubClient = void 0;
+const github = __importStar(require("@actions/github"));
+const config_1 = require("./config");
+class GitHubClient {
+    constructor(token) {
+        this.octokit = github.getOctokit(token);
+        this.owner = github.context.repo.owner;
+        this.repo = github.context.repo.repo;
+        this.prNumber = github.context.issue.number;
+    }
+    /**
+     * PR에서 변경된 파일 목록을 가져옵니다
+     */
+    async getChangedFiles() {
+        try {
+            const { data } = await this.octokit.rest.pulls.listFiles({
+                owner: this.owner,
+                repo: this.repo,
+                pull_number: this.prNumber,
+                per_page: config_1.CONFIG.FILES_PER_PAGE
+            });
+            return data;
+        }
+        catch (error) {
+            throw new Error(`변경된 파일을 가져오는 중 오류 발생: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
+        }
+    }
+    /**
+     * PR에 리뷰를 작성합니다
+     */
+    async createReview(summary, comments) {
+        try {
+            await this.octokit.rest.pulls.createReview({
+                owner: this.owner,
+                repo: this.repo,
+                pull_number: this.prNumber,
+                body: summary,
+                event: config_1.CONFIG.REVIEW_EVENT,
+                comments: comments
+            });
+        }
+        catch (error) {
+            throw new Error(`리뷰 작성 중 오류 발생: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
+        }
+    }
+}
+exports.GitHubClient = GitHubClient;
