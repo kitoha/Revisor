@@ -3,7 +3,7 @@ export const CONFIG = {
   
   MAX_REVIEW_COMMENTS: 3,
   
-  DEFAULT_MODEL: 'gemini-pro',
+  DEFAULT_MODEL: 'gemini-2.5-flash',
   
   FILES_PER_PAGE: 100,
   

@@ -11,7 +11,7 @@ inputs:
     required: true
     default: ${{ github.token }}
   gemini-model:
-    description: 'Gemini model to use (default: gemini-pro)'
+    description: 'Gemini model to use (default: gemini-2.5-flash)'
     required: false
   max-changes:
     description: 'Maximum number of changes per file to analyze (default: 500)'
