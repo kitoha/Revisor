@@ -10,7 +10,7 @@ exports.CONFIG = {
     // 리뷰 설정
     MAX_REVIEW_COMMENTS: 3,
     // Gemini 설정
-    DEFAULT_MODEL: 'gemini-pro',
+    DEFAULT_MODEL: 'gemini-2.5-flash',
     // GitHub API 설정
     FILES_PER_PAGE: 100,
     // 바이너리 파일 확장자

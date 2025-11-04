@@ -13,13 +13,15 @@ inputs:
   gemini-model:
     description: 'Gemini model to use (default: gemini-2.5-flash)'
     required: false
-    default: 'gemini-2.5-flash
+    default: 'gemini-2.5-flash'
   max-changes:
     description: 'Maximum number of changes per file to analyze (default: 500)'
     required: false
+    default: '500'
   max-comments:
     description: 'Maximum number of review comments (default: 3)'
     required: false
+    default: '3'
 
 runs:
   using: 'node20'

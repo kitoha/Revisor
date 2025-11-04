@@ -15,7 +15,7 @@ function getInputs(): ActionInputs {
   return {
     geminiApiKey: core.getInput('gemini-api-key', { required: true }),
     githubToken: core.getInput('github-token', { required: true }),
-    geminiModel: core.getInput('gemini-model') || undefined,
+    geminiModel: core.getInput('gemini-model') || 'gemini-2.5-flash',
     maxChanges: parseOptionalNumber(core.getInput('max-changes')),
     maxComments: parseOptionalNumber(core.getInput('max-comments'))
   };
