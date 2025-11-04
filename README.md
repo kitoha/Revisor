@@ -44,12 +44,12 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run Revisor
-        uses: kitoha/revisor@v1
+        uses: kitoha/Revisor@v1.0.1
         with:
           gemini-api-key: ${{ secrets.GEMINI_API_KEY }}
           # github-token은 기본값으로 GitHub가 제공하는 토큰을 사용합니다.
           # github-token: ${{ secrets.GITHUB_TOKEN }}
-          # 선택 입력값 예시
+          # 선택 입력값 (모두 기본값이 설정되어 있어 생략 가능)
           # gemini-model: gemini-2.5-flash
           # max-changes: 500
           # max-comments: 3
