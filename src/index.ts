@@ -59,6 +59,12 @@ async function run(): Promise<void> {
     core.info(`분석 완료! 이슈 ${analysis.comments.length}개 발견`);
     
     const reviewSummary = createReviewSummary(files, analysis);
+    core.info('기존 리뷰 확인 중...');
+    const existingReviewId = await githubClient.getExistingReview();
+    if (existingReviewId) {
+      core.info('기존 리뷰를 찾았습니다. 업데이트 중...');
+      await githubClient.deleteReview(existingReviewId);
+    }
     core.info('리뷰 작성 중...');
     await githubClient.createReview(reviewSummary, analysis.comments);
     

@@ -44,6 +44,36 @@ export class GitHubClient {
     }
   }
 
+  async getExistingReview(): Promise<number | null> {
+    try {
+      const { data: reviews } = await this.octokit.rest.pulls.listReviews({
+        owner: this.owner,
+        repo: this.repo,
+        pull_number: this.prNumber
+      });
+
+      const revisorReview = reviews.find(review => 
+        review.body && review.body.includes('🤖 Revisor AI Code Review')
+      );
+
+      return revisorReview ? revisorReview.id : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  async deleteReview(reviewId: number): Promise<void> {
+    try {
+      await this.octokit.rest.pulls.deleteReview({
+        owner: this.owner,
+        repo: this.repo,
+        pull_number: this.prNumber,
+        review_id: reviewId
+      });
+    } catch (error) {
+    }
+  }
+
   async createReview(summary: string, comments: ReviewComment[]): Promise<void> {
     try {
       const validComments = comments
@@ -63,5 +93,15 @@ export class GitHubClient {
         `${MESSAGES.CREATE_REVIEW_ERROR}: ${error instanceof Error ? error.message : MESSAGES.UNKNOWN_ERROR}`
       );
     }
+  }
+
+  async createOrUpdateReview(summary: string, comments: ReviewComment[]): Promise<void> {
+    const existingReviewId = await this.getExistingReview();
+    
+    if (existingReviewId) {
+      await this.deleteReview(existingReviewId);
+    }
+    
+    await this.createReview(summary, comments);
   }
 }
